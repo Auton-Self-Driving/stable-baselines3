@@ -241,12 +241,14 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             self._update_current_progress_remaining(self.num_timesteps, total_timesteps)
 
             # Display training infos
+
             if log_interval is not None and iteration % log_interval == 0:
                 fps = int(self.num_timesteps / (time.time() - self.start_time))
                 logger.record("time/iterations", iteration, exclude="tensorboard")
-                if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
-                    logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
-                    logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+                #TODO Add this back
+                # if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
+                #     logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+                #     logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
                 logger.record("time/fps", fps)
                 logger.record("time/time_elapsed", int(time.time() - self.start_time), exclude="tensorboard")
                 logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
