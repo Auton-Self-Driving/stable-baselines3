@@ -84,6 +84,7 @@ class PPO(OnPolicyAlgorithm):
         sde_sample_freq: int = -1,
         target_kl: Optional[float] = None,
         tensorboard_log: Optional[str] = None,
+        carla_logger = None,
         create_eval_env: bool = False,
         policy_kwargs: Optional[Dict[str, Any]] = None,
         verbose: int = 0,
@@ -91,7 +92,6 @@ class PPO(OnPolicyAlgorithm):
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
     ):
-
         super(PPO, self).__init__(
             policy,
             env,
@@ -105,6 +105,7 @@ class PPO(OnPolicyAlgorithm):
             use_sde=use_sde,
             sde_sample_freq=sde_sample_freq,
             tensorboard_log=tensorboard_log,
+            carla_logger = carla_logger,
             policy_kwargs=policy_kwargs,
             verbose=verbose,
             device=device,

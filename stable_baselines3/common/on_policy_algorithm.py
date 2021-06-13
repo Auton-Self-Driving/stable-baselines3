@@ -65,6 +65,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         sde_sample_freq: int,
         policy_base: Type[BasePolicy] = ActorCriticPolicy,
         tensorboard_log: Optional[str] = None,
+        carla_logger = None,
         create_eval_env: bool = False,
         monitor_wrapper: bool = True,
         policy_kwargs: Optional[Dict[str, Any]] = None,
@@ -74,7 +75,6 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         _init_setup_model: bool = True,
         supported_action_spaces: Optional[Tuple[gym.spaces.Space, ...]] = None,
     ):
-
         super(OnPolicyAlgorithm, self).__init__(
             policy=policy,
             env=env,
@@ -89,6 +89,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             support_multi_env=True,
             seed=seed,
             tensorboard_log=tensorboard_log,
+            carla_logger = carla_logger,
             supported_action_spaces=supported_action_spaces,
         )
 
@@ -245,10 +246,10 @@ class OnPolicyAlgorithm(BaseAlgorithm):
             if log_interval is not None and iteration % log_interval == 0:
                 fps = int(self.num_timesteps / (time.time() - self.start_time))
                 logger.record("time/iterations", iteration, exclude="tensorboard")
-                #TODO Add this back
-                # if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
-                #     logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
-                #     logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+                if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
+
+                    logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+                    logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
                 logger.record("time/fps", fps)
                 logger.record("time/time_elapsed", int(time.time() - self.start_time), exclude="tensorboard")
                 logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")

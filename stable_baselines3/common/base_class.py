@@ -2,6 +2,7 @@
 
 import io
 import pathlib
+from re import A
 import time
 from abc import ABC, abstractmethod
 from collections import deque
@@ -89,6 +90,7 @@ class BaseAlgorithm(ABC):
         learning_rate: Union[float, Schedule],
         policy_kwargs: Dict[str, Any] = None,
         tensorboard_log: Optional[str] = None,
+        carla_logger = None,
         verbose: int = 0,
         device: Union[th.device, str] = "auto",
         support_multi_env: bool = False,
@@ -127,6 +129,7 @@ class BaseAlgorithm(ABC):
         self.policy = None
         self.learning_rate = learning_rate
         self.tensorboard_log = tensorboard_log
+        self.carla_logger = carla_logger
         self.lr_schedule = None  # type: Optional[Schedule]
         self._last_obs = None  # type: Optional[Union[np.ndarray, Dict[str, np.ndarray]]]
         self._last_episode_starts = None  # type: Optional[np.ndarray]
@@ -389,6 +392,7 @@ class BaseAlgorithm(ABC):
             total_timesteps += self.num_timesteps
         self._total_timesteps = total_timesteps
 
+
         # Avoid resetting the environment when calling ``.learn()`` consecutive times
         if reset_num_timesteps or self._last_obs is None:
             self._last_obs = self.env.reset()  # pytype: disable=annotation-type-mismatch
@@ -403,7 +407,7 @@ class BaseAlgorithm(ABC):
         eval_env = self._get_eval_env(eval_env)
 
         # Configure logger's outputs
-        utils.configure_logger(self.verbose, self.tensorboard_log, tb_log_name, reset_num_timesteps)
+        utils.configure_logger(self.verbose, self.tensorboard_log, tb_log_name, reset_num_timesteps, carla_logger = self.carla_logger)
 
         # Create eval callback if needed
         callback = self._init_callback(callback, eval_env, eval_freq, n_eval_episodes, log_path)

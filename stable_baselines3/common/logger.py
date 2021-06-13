@@ -374,7 +374,47 @@ class TensorBoardOutputFormat(KVWriter):
             self.writer = None
 
 
-def make_output_format(_format: str, log_dir: str, log_suffix: str = "") -> KVWriter:
+class CarlaRLOutputFormat(KVWriter):
+    def __init__(self, carla_logger):
+        """
+        Uses carla-rl loggers to log data
+
+        :param folder: the folder to write the log to
+        """
+        self.carla_logger = carla_logger
+
+    def write(self, key_values: Dict[str, Any], key_excluded: Dict[str, Union[str, Tuple[str, ...]]], step: int = 0) -> None:
+
+        for (key, value), (_, excluded) in zip(sorted(key_values.items()), sorted(key_excluded.items())):
+
+            if excluded is not None and "tensorboard" in excluded:
+                continue
+
+            if isinstance(value, np.ScalarType):
+                if isinstance(value, str):
+                    # str is considered a np.ScalarType
+                    raise NotImplementedError("Carla-RL logger not configured to log text")
+                else:
+                    self.carla_logger.log_scalar(key, value, step)
+
+            if isinstance(value, th.Tensor):
+                raise NotImplementedError("Carla-RL logger not configured to log tensor")
+
+            if isinstance(value, Video):
+                raise NotImplementedError("Carla-RL logger not configured to log videos")
+
+            if isinstance(value, Figure):
+                raise NotImplementedError("Carla-RL logger not configured to log figures")
+
+            if isinstance(value, Image):
+                raise NotImplementedError("Carla-RL logger not configured to log images")
+
+
+    def close(self) -> None:
+        pass
+
+
+def make_output_format(_format: str, log_dir: str, log_suffix: str = "", carla_logger = None) -> KVWriter:
     """
     return a logger for the requested format
 
@@ -383,6 +423,8 @@ def make_output_format(_format: str, log_dir: str, log_suffix: str = "") -> KVWr
     :param log_suffix: the suffix for the log file
     :return: the logger
     """
+    if _format == "carla-rl":
+        return CarlaRLOutputFormat(carla_logger)
     os.makedirs(log_dir, exist_ok=True)
     if _format == "stdout":
         return HumanOutputFormat(sys.stdout)
@@ -669,7 +711,7 @@ class Logger(object):
 Logger.DEFAULT = Logger.CURRENT = Logger(folder=None, output_formats=[HumanOutputFormat(sys.stdout)])
 
 
-def configure(folder: Optional[str] = None, format_strings: Optional[List[str]] = None) -> None:
+def configure(folder: Optional[str] = None, format_strings: Optional[List[str]] = None, carla_logger = None) -> None:
     """
     configure the current logger
 
@@ -678,9 +720,14 @@ def configure(folder: Optional[str] = None, format_strings: Optional[List[str]] 
     :param format_strings: the output logging format
         (if None, $SB3_LOG_FORMAT, if still None, ['stdout', 'log', 'csv'])
     """
+    if carla_logger is not None:
+        folder = os.path.join(carla_logger.log_dir, "policy")
     if folder is None:
         folder = os.getenv("SB3_LOGDIR")
     if folder is None:
+        raise Exception("Must specify log folder. NOTE: This is behavior specific for the auton cluster, as the default log_dir for \
+            stable baselines 3 is /tmp/, which should not be used on the server. The log folder can be specified by passing a logger obect \
+                to the algorithm as the carla_logger argument. Alternatively, the tensorboard log_dir can be set according to the stable_baselines documentation.")
         folder = os.path.join(tempfile.gettempdir(), datetime.datetime.now().strftime("SB3-%Y-%m-%d-%H-%M-%S-%f"))
     assert isinstance(folder, str)
     os.makedirs(folder, exist_ok=True)
@@ -692,8 +739,13 @@ def configure(folder: Optional[str] = None, format_strings: Optional[List[str]] 
     format_strings = filter(None, format_strings)
     output_formats = [make_output_format(f, folder, log_suffix) for f in format_strings]
 
-    Logger.CURRENT = Logger(folder=folder, output_formats=output_formats)
+    if carla_logger is not None:
+        output_formats.append(make_output_format("carla-rl", "", carla_logger=carla_logger))
+
     log(f"Logging to {folder}")
+
+    Logger.CURRENT = Logger(folder=folder, output_formats=output_formats)
+
 
 
 def reset() -> None:

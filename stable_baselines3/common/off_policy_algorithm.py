@@ -93,6 +93,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         optimize_memory_usage: bool = False,
         policy_kwargs: Dict[str, Any] = None,
         tensorboard_log: Optional[str] = None,
+        carla_logger = None,
         verbose: int = 0,
         device: Union[th.device, str] = "auto",
         support_multi_env: bool = False,
@@ -123,6 +124,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             use_sde=use_sde,
             sde_sample_freq=sde_sample_freq,
             supported_action_spaces=supported_action_spaces,
+            carla_logger = carla_logger
         )
         self.buffer_size = buffer_size
         self.batch_size = batch_size

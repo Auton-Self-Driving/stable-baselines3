@@ -172,6 +172,7 @@ def configure_logger(
     tensorboard_log: Optional[str] = None,
     tb_log_name: str = "",
     reset_num_timesteps: bool = True,
+    carla_logger = None,
 ) -> None:
     """
     Configure the logger's outputs.
@@ -180,6 +181,8 @@ def configure_logger(
     :param tensorboard_log: the log location for tensorboard (if None, no logging)
     :param tb_log_name: tensorboard log
     """
+    if(carla_logger is not None):
+        logger.configure(None, ["stdout"], carla_logger = carla_logger)
     if tensorboard_log is not None and SummaryWriter is not None:
         latest_run_id = get_latest_run_id(tensorboard_log, tb_log_name)
         if not reset_num_timesteps:
