@@ -293,6 +293,7 @@ class BaseAlgorithm(ABC):
             "rollout_buffer",
             "_vec_normalize_env",
             "_episode_storage",
+            "carla_logger"
         ]
 
     def _get_torch_save_params(self) -> Tuple[List[str], List[str]]:
@@ -750,3 +751,6 @@ class BaseAlgorithm(ABC):
         params_to_save = self.get_parameters()
 
         save_to_zip_file(path, data=data, params=params_to_save, pytorch_variables=pytorch_variables)
+
+        if(self.carla_logger is not None):
+            self.carla_logger.log_model("policy/models", path + ".zip")
