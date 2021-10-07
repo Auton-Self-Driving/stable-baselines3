@@ -609,6 +609,9 @@ class Logger(object):
         self.dir = folder
         self.output_formats = output_formats
 
+        # if(self.dir == None):
+        #     raise Exception("Log Directory is set to /tmp, pass a different directory")
+
     # Logging API, forwarded
     # ----------------------------------------
     def record(self, key: str, value: Any, exclude: Optional[Union[str, Tuple[str, ...]]] = None) -> None:

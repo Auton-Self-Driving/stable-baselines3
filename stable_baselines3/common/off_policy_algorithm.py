@@ -351,25 +351,46 @@ class OffPolicyAlgorithm(BaseAlgorithm):
 
         callback.on_training_start(locals(), globals())
 
+        print("ENTERING TRAINING LOOP")
         while self.num_timesteps < total_timesteps:
-            rollout = self.collect_rollouts(
-                self.env,
-                train_freq=self.train_freq,
-                action_noise=self.action_noise,
-                callback=callback,
-                learning_starts=self.learning_starts,
-                replay_buffer=self.replay_buffer,
-                log_interval=log_interval,
-            )
+            # Collect data for all entropy coef values if we are still in initial data collection phase
 
-            if rollout.continue_training is False:
-                break
+            # import ipdb; ipdb.set_trace()
+            for i, ent_coef in enumerate(self.ent_coef_tensors):
+                if(self.num_timesteps < self.learning_starts):
+                    for j, temp_ent_coef in enumerate(self.ent_coef_tensors):
+                        rollout = self.collect_rollouts(
+                            self.env,
+                            train_freq=self.train_freq,
+                            action_noise=self.action_noise,
+                            callback=callback,
+                            learning_starts=self.learning_starts,
+                            replay_buffer=self.replay_buffers[j],
+                            log_interval=log_interval,
+                            ent_coef = temp_ent_coef
+                        )
 
-            if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts:
-                # If no `gradient_steps` is specified,
-                # do as many gradients steps as steps performed during the rollout
-                gradient_steps = self.gradient_steps if self.gradient_steps > 0 else rollout.episode_timesteps
-                self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
+                else: # Just collect for a single ent coef
+                    rollout = self.collect_rollouts(
+                            self.env,
+                            train_freq=self.train_freq,
+                            action_noise=self.action_noise,
+                            callback=callback,
+                            learning_starts=self.learning_starts,
+                            replay_buffer=self.replay_buffers[i],
+                            log_interval=log_interval,
+                            ent_coef = ent_coef
+                        )
+
+
+                if rollout.continue_training is False:
+                    break
+
+                if self.num_timesteps > 0 and self.num_timesteps > self.learning_starts:
+                    # If no `gradient_steps` is specified,
+                    # do as many gradients steps as steps performed during the rollout
+                    gradient_steps = self.gradient_steps if self.gradient_steps > 0 else rollout.episode_timesteps
+                    self.train(batch_size=self.batch_size, gradient_steps=gradient_steps)
 
         callback.on_training_end()
 
@@ -463,6 +484,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         reward: np.ndarray,
         done: np.ndarray,
         infos: List[Dict[str, Any]],
+        ent_coef
     ) -> None:
         """
         Store transition in the replay buffer.
@@ -496,6 +518,12 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         else:
             next_obs = new_obs_
 
+        if(len(next_obs.shape) == 2):
+            next_obs = np.concatenate([next_obs, np.expand_dims(ent_coef.cpu().numpy(), axis = 0)], axis = -1)
+        else:
+            next_obs = np.concatenate([next_obs, ent_coef.cpu().numpy()], axis = -1)
+
+
         replay_buffer.add(
             self._last_original_obs,
             next_obs,
@@ -505,6 +533,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
             infos,
         )
 
+        # self._last_obs = np.concatenate([new_obs, np.expand_dims(ent_coef.cpu().numpy(), axis = 0)], axis = -1)
         self._last_obs = new_obs
         # Save the unnormalized observation
         if self._vec_normalize_env is not None:
@@ -519,6 +548,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
         action_noise: Optional[ActionNoise] = None,
         learning_starts: int = 0,
         log_interval: Optional[int] = None,
+        ent_coef: float = None
     ) -> RolloutReturn:
         """
         Collect experiences and store them into a ``ReplayBuffer``.
@@ -563,6 +593,9 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                     self.actor.reset_noise()
 
                 # Select action randomly or according to policy
+                #
+                if(self._last_obs.shape[-1] != self.observation_space.shape[-1]):
+                    self._last_obs = np.concatenate([self._last_obs, np.expand_dims(ent_coef.cpu().numpy(), axis = 0)], axis = -1)
                 action, buffer_action = self._sample_action(learning_starts, action_noise)
 
                 # Rescale and perform action
@@ -584,7 +617,7 @@ class OffPolicyAlgorithm(BaseAlgorithm):
                 self._update_info_buffer(infos, done)
 
                 # Store data in replay buffer (normalized action and unnormalized observation)
-                self._store_transition(replay_buffer, buffer_action, new_obs, reward, done, infos)
+                self._store_transition(replay_buffer, buffer_action, new_obs, reward, done, infos, ent_coef)
 
                 self._update_current_progress_remaining(self.num_timesteps, self._total_timesteps)
 

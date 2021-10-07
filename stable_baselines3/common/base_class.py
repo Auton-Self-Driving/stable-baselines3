@@ -503,6 +503,7 @@ class BaseAlgorithm(ABC):
         state: Optional[np.ndarray] = None,
         mask: Optional[np.ndarray] = None,
         deterministic: bool = False,
+        ent_coef = None
     ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """
         Get the model's action(s) from an observation
@@ -715,6 +716,7 @@ class BaseAlgorithm(ABC):
         :param exclude: name of parameters that should be excluded in addition to the default ones
         :param include: name of parameters that might be excluded but should be included anyway
         """
+
         # Copy parameter list so we don't mutate the original dict
         data = self.__dict__.copy()
 
