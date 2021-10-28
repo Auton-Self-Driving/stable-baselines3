@@ -417,6 +417,7 @@ class ActorCriticPolicy(BasePolicy):
             if features_extractor_class == NatureCNN:
                 net_arch = []
             else:
+                # net_arch = [dict(pi=[64, 64], vf=[64, 64])]
                 net_arch = [dict(pi=[64, 64], vf=[64, 64])]
 
         self.net_arch = net_arch
@@ -447,6 +448,8 @@ class ActorCriticPolicy(BasePolicy):
         self.action_dist = make_proba_distribution(action_space, use_sde=use_sde, dist_kwargs=dist_kwargs)
 
         self._build(lr_schedule)
+
+        self.tanh = th.nn.Tanh()
 
     def _get_constructor_parameters(self) -> Dict[str, Any]:
         data = super()._get_constructor_parameters()
@@ -595,7 +598,10 @@ class ActorCriticPolicy(BasePolicy):
         :param latent_sde: Latent code for the gSDE exploration function
         :return: Action distribution
         """
-        mean_actions = self.action_net(latent_pi)
+        mean_actions = self.tanh(self.action_net(latent_pi))
+
+        mean_actions = th.cat([mean_actions[:,0:1], mean_actions[:,1:2].clone()  * 0.5], dim = -1)
+        # print(mean_actions)
 
         if isinstance(self.action_dist, DiagGaussianDistribution):
             return self.action_dist.proba_distribution(mean_actions, self.log_std)
