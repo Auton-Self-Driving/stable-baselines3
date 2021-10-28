@@ -174,6 +174,8 @@ class MlpExtractor(nn.Module):
         value_only_layers = []  # Layer sizes of the network that only belongs to the value network
         last_layer_dim_shared = feature_dim
 
+        # shared_net.append(nn.Linear(last_layer_dim_shared, 64))  # add linear of size layer
+        # last_layer_dim_shared = 64
         # Iterate through the shared layers and build the shared parts of the network
         for layer in net_arch:
             if isinstance(layer, int):  # Check that this is a shared layer
@@ -181,11 +183,16 @@ class MlpExtractor(nn.Module):
                 shared_net.append(nn.Linear(last_layer_dim_shared, layer))  # add linear of size layer
                 shared_net.append(activation_fn())
                 last_layer_dim_shared = layer
+
+
+                # TODO CHANGED FOR LINEAR POLICY
+                # shared_net.append(nn.Linear(last_layer_dim_shared, layer))  # add linear of size layer
+                # last_layer_dim_shared = layer
             else:
                 assert isinstance(layer, dict), "Error: the net_arch list can only contain ints and dicts"
-                if "pi" in layer:
-                    assert isinstance(layer["pi"], list), "Error: net_arch[-1]['pi'] must contain a list of integers."
-                    policy_only_layers = layer["pi"]
+                # if "pi" in layer:
+                #     assert isinstance(layer["pi"], list), "Error: net_arch[-1]['pi'] must contain a list of integers."
+                #     policy_only_layers = layer["pi"]
 
                 if "vf" in layer:
                     assert isinstance(layer["vf"], list), "Error: net_arch[-1]['vf'] must contain a list of integers."
@@ -197,11 +204,16 @@ class MlpExtractor(nn.Module):
 
         # Build the non-shared part of the network
         for pi_layer_size, vf_layer_size in zip_longest(policy_only_layers, value_only_layers):
-            if pi_layer_size is not None:
-                assert isinstance(pi_layer_size, int), "Error: net_arch[-1]['pi'] must only contain integers."
-                policy_net.append(nn.Linear(last_layer_dim_pi, pi_layer_size))
-                policy_net.append(activation_fn())
-                last_layer_dim_pi = pi_layer_size
+            # if pi_layer_size is not None:
+            #     assert isinstance(pi_layer_size, int), "Error: net_arch[-1]['pi'] must only contain integers."
+            #     policy_net.append(nn.Linear(last_layer_dim_pi, pi_layer_size))
+            #     policy_net.append(activation_fn())
+            #     last_layer_dim_pi = pi_layer_size
+
+                # DONT" ADD BACK
+                # TODO CHANGED FOR LINEAR POLICY
+                # shared_net.append(nn.Linear(last_layer_dim_shared, last_layer_dim_pi))  # add linear of size layer
+                # last_layer_dim_shared = layer
 
             if vf_layer_size is not None:
                 assert isinstance(vf_layer_size, int), "Error: net_arch[-1]['vf'] must only contain integers."
@@ -209,9 +221,16 @@ class MlpExtractor(nn.Module):
                 value_net.append(activation_fn())
                 last_layer_dim_vf = vf_layer_size
 
+        #TODO Linear policy
+        # policy_net.append(nn.Linear(last_layer_dim_pi, policy_only_layers[-1]))
+        # last_layer_dim_pi = pi_layer_size
+
         # Save dim, used to create the distributions
         self.latent_dim_pi = last_layer_dim_pi
         self.latent_dim_vf = last_layer_dim_vf
+
+        policy_net.append(nn.Linear(6, 64))
+        self.latent_dim_pi = 64
 
         # Create networks
         # If the list of layers is empty, the network will just act as an Identity module
