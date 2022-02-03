@@ -12,6 +12,7 @@ import torch as th
 from torch import nn
 
 from stable_baselines3.common.distributions import (
+    BetaDistribution,
     BernoulliDistribution,
     CategoricalDistribution,
     DiagGaussianDistribution,
@@ -520,7 +521,7 @@ class ActorCriticPolicy(BasePolicy):
             )
         elif isinstance(self.action_dist, BetaDistribution):
             self.action_net, self.beta_net = self.action_dist.proba_distribution_net(
-                latent_dim=latent_dim_pi, log_std_init=self.log_std_init
+                latent_dim=latent_dim_pi
             )
         elif isinstance(self.action_dist, StateDependentNoiseDistribution):
             latent_sde_dim = latent_dim_pi if self.sde_net_arch is None else latent_sde_dim
